@@ -1,4 +1,3 @@
--- ============================================================
 -- OPTIONS
 -- ============================================================
 vim.g.mapleader = " "
@@ -33,6 +32,11 @@ vim.pack.add({
   { src = 'https://github.com/lewis6991/gitsigns.nvim' },
   -- DifView
   { src = 'https://github.com/sindrets/diffview.nvim' },
+  -- nvim-autopairs
+  {src = "https://github.com/windwp/nvim-autopairs"},
+  {src ="https://github.com/nvim-lualine/lualine.nvim"},
+  {src ="https://github.com/nvim-tree/nvim-web-devicons"},
+
 })
 
 -- ============================================================
@@ -147,6 +151,21 @@ vim.api.nvim_create_autocmd('TermOpen', {
 })
 
 -- ============================================================
+-- AUTOPAIRS
+-- ============================================================
+
+-- Setup
+local autopairs = require("nvim-autopairs")
+autopairs.setup({
+  check_ts = true,       -- Treesitter-aware pairing
+  disable_filetype = { "TelescopePrompt", "vim" },
+  fast_wrap = {
+    map = "<M-e>",         -- Alt+e to wrap selection
+    chars = { "{", "[", "(", '"', "'" },
+  },
+})
+
+-- ============================================================
 -- KEYMAPS
 -- ============================================================
 
@@ -159,7 +178,7 @@ vim.keymap.set('n', '<leader>fg', require('fzf-lua').live_grep,     { desc = 'Li
 vim.keymap.set('n', '<leader>fb', require('fzf-lua').buffers,       { desc = 'Find buffers' })
 vim.keymap.set('n', '<leader>fr', require('fzf-lua').lsp_references,{ desc = 'LSP references' })
 
---lazygit 
+--lazygit
 vim.keymap.set('n', '<leader>gg', ':LazyGit<CR>', { desc = 'Open LazyGit' })
 
 -- terminal
@@ -198,3 +217,77 @@ require('diffview').setup()
 vim.keymap.set('n', '<leader>gd', ':DiffviewOpen<CR>',        { desc = 'Git diff' })
 vim.keymap.set('n', '<leader>gl', ':DiffviewFileHistory<CR>', { desc = 'Git log' })
 vim.keymap.set('n', '<leader>gx', ':DiffviewClose<CR>',       { desc = 'Close diffview' })
+
+-- ============================================================
+-- STATUSLINE UPDATE
+-- ============================================================
+
+require("lualine").setup({
+  options = {
+    theme        = "auto",
+    globalstatus = true,
+    component_separators = { left = "|", right = "|" },
+    section_separators  = { left = "", right = "" },
+  },
+  sections = {
+    -- LEFT: mode | git branch | git diff | LSP diagnostics
+    lualine_a = { "mode" },
+    lualine_b = {
+      "branch",
+      "diff",
+      {
+        "diagnostics",
+        sources = { "nvim_lsp" },
+        symbols = { error = "E:", warn = "W:", info = "I:", hint = "H:" },
+      },
+    },
+
+    -- CENTER: relative/path/to/file  ● if modified
+    lualine_c = {
+      { "filename", path = 1, symbols = { modified = " ●", readonly = " 🔒" } },
+    },
+
+    -- RIGHT: rust toolchain | lsp server | lsp progress | encoding | filetype
+    lualine_x = {
+      -- Rust toolchain version — only shown in .rs files
+      {
+                  function()
+                        local h = io.popen("rustc --version 2>/dev/null")
+                        if h then
+                          local r = h:read("*a"):match("rustc ([%d%.]+)")
+                          h:close()
+                          if r then return "rust:" .. r end
+                        end
+                        return ""
+                  end,
+                  cond  = function() return vim.bo.filetype == "rust" end,
+                  color = { fg = "#e06c75" },
+                },
+      -- Active LSP server name(s) for this buffer
+      {
+        function()
+          local clients = vim.lsp.get_clients({ bufnr = 0 })
+          if #clients == 0 then return "" end
+          local names = {}
+          for _, c in ipairs(clients) do table.insert(names, c.name) end
+          return "lsp:" .. table.concat(names, ",")
+        end,
+        color = { fg = "#98c379" },
+      },
+
+      -- LSP indexing/loading progress (Neovim 0.12 built-in vim.lsp.status())
+      {
+        function() return vim.lsp.status() end,
+        cond  = function() return vim.lsp.status() ~= "" end,
+        color = { fg = "#e5c07b" },
+      },
+
+      "encoding",
+      "filetype",
+    },
+
+    -- FAR RIGHT: scroll % | line:col
+    lualine_y = { "progress" },
+    lualine_z = { "location" },
+  },
+})
