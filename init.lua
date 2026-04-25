@@ -5,6 +5,9 @@ vim.o.number = true
 vim.o.relativenumber = true
 vim.o.wrap = false
 vim.o.tabstop = 4
+vim.opt.shiftwidth = 4    -- indentation width (>> and <<)
+vim.opt.expandtab = true  -- convert tabs to spaces
+vim.opt.softtabstop = 4   -- tab in insert mode = 4 spaces
 vim.o.signcolumn = "yes"
 vim.o.winborder = "rounded"
 
@@ -42,7 +45,9 @@ vim.pack.add({
 -- ============================================================
 -- COLORSCHEME
 -- ============================================================
-require("gruvbox").setup()
+require("gruvbox").setup({
+    transparent_mode = true,
+})
 vim.cmd.colorscheme("gruvbox")
 -- ============================================================
 -- FILE EXPLORER (nvim-tree)
